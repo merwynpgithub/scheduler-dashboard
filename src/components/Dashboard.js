@@ -1,28 +1,35 @@
 import React, { Component } from "react";
+import classnames from "classnames";
+import axios from 'axios';
 import Loading from "./Loading";
 import Panel from "./Panel";
-import classnames from "classnames";
+import {
+  getTotalInterviews,
+  getLeastPopularTimeSlot,
+  getMostPopularDay,
+  getInterviewsPerDay
+ } from "helpers/selectors";
 
 const data = [
   {
     id: 1,
     label: "Total Interviews",
-    value: 6
+    getValue: getTotalInterviews
   },
   {
     id: 2,
     label: "Least Popular Time Slot",
-    value: "1pm"
+    getValue: getLeastPopularTimeSlot
   },
   {
     id: 3,
     label: "Most Popular Day",
-    value: "Wednesday"
+    getValue: getMostPopularDay
   },
   {
     id: 4,
     label: "Interviews Per Day",
-    value: "2.3"
+    getValue: getInterviewsPerDay
   }
 ];
 
@@ -30,8 +37,11 @@ class Dashboard extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      loading: false,
-      focused: null
+      loading: true,
+      focused: null,
+      days: [],
+      appointments: {},
+      interviewers: {}
     };
     this.selectPanel = this.selectPanel.bind(this);
   }
@@ -51,17 +61,32 @@ class Dashboard extends Component {
   }
 
   componentDidMount() {
-    console.log("Class: The component mounted")
+    console.log("Class: The component mounted");
     const focused = JSON.parse(localStorage.getItem("focused"));
     if (focused) {
       this.setState({focused});
     }
+    Promise.all([
+      axios.get("/api/days"),
+      axios.get("/api/appointments"),
+      axios.get("/api/interviewers")
+    ]).then(all => {
+      const days = all[0].data;
+      const appointments = all[1].data;
+      const interviewers = all[2].data;
+      this.setState({
+        loading: false,
+        days,
+        appointments, 
+        interviewers
+      })
+    })
   }
   componentDidUpdate(previousState) {
+    console.log('Class: The component updated');
     if (previousState.focused !== this.state.focused) {
       localStorage.setItem("focused", JSON.stringify(this.state.focused));
     }
-    console.log('Class: The component updated');
   }
 
 
@@ -71,8 +96,10 @@ class Dashboard extends Component {
       "dashboard--focused": this.state.focused
     });
     if (this.state.loading) {
+      console.log(this.state);
       return <Loading />;
     }
+    console.log(this.state);
     const panelList = data
       .filter(panel => this.state.focused === null || this.state.focused === panel.id)
       .map(panel => {
@@ -80,7 +107,7 @@ class Dashboard extends Component {
           <Panel
             key={panel.id}
             label={panel.label}
-            value={panel.value}
+            value={panel.getValue(this.state)}
             onSelect={(event) => this.selectPanel(panel.id)}
           />
         );
