@@ -40,11 +40,31 @@ class Dashboard extends Component {
   //   this.setState({focused: id});
   // }
 
+  // selectPanel(id) {
+  //   this.setState({focused: id});
+  // }
+
   selectPanel(id) {
     this.setState(previousState => ({
       focused: previousState.focused !== null ? null : id
     }));
   }
+
+  componentDidMount() {
+    console.log("Class: The component mounted")
+    const focused = JSON.parse(localStorage.getItem("focused"));
+    if (focused) {
+      this.setState({focused});
+    }
+  }
+  componentDidUpdate(previousState) {
+    if (previousState.focused !== this.state.focused) {
+      localStorage.setItem("focused", JSON.stringify(this.state.focused));
+    }
+    console.log('Class: The component updated');
+  }
+
+
 
   render() {
     const dashboardClasses = classnames("dashboard", {
@@ -61,7 +81,7 @@ class Dashboard extends Component {
             key={panel.id}
             label={panel.label}
             value={panel.value}
-            onSelect={event => this.selectPanel(panel.id)}
+            onSelect={(event) => this.selectPanel(panel.id)}
           />
         );
       })
