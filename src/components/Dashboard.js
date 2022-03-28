@@ -8,7 +8,8 @@ import {
   getLeastPopularTimeSlot,
   getMostPopularDay,
   getInterviewsPerDay
- } from "helpers/selectors";
+} from "helpers/selectors";
+import { setInterview } from "helpers/reducers";
 
 const data = [
   {
@@ -64,7 +65,7 @@ class Dashboard extends Component {
     console.log("Class: The component mounted");
     const focused = JSON.parse(localStorage.getItem("focused"));
     if (focused) {
-      this.setState({focused});
+      this.setState({ focused });
     }
     Promise.all([
       axios.get("/api/days"),
@@ -77,10 +78,21 @@ class Dashboard extends Component {
       this.setState({
         loading: false,
         days,
-        appointments, 
+        appointments,
         interviewers
-      })
-    })
+      });
+    });
+    this.socket = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL);
+
+    this.socket.onmessage = event => {
+      const data = JSON.parse(event.data);
+
+      if (typeof data === "object" && data.type === "SET_INTERVIEW") {
+        this.setState(previousState =>
+          setInterview(previousState, data.id, data.interview)
+        );
+      }
+    };
   }
   componentDidUpdate(previousState) {
     console.log('Class: The component updated');
@@ -89,7 +101,9 @@ class Dashboard extends Component {
     }
   }
 
-
+  componentWillUnmount() {
+    this.socket.close();
+  }
 
   render() {
     const dashboardClasses = classnames("dashboard", {
